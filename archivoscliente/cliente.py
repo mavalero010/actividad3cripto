@@ -9,7 +9,10 @@ from Crypto.Hash import HMAC, SHA256
 from Crypto.Cipher import AES
 import socket
 import json
-
+server=socket.socket()
+server1=socket.socket()
+server2=socket.socket()
+server3=socket.socket()
 
 class FP:
 
@@ -364,9 +367,14 @@ n=math.log(q, 2)
 
 
 
-aexp=random.randint(2,q-1)
+f = open("aexp.txt", "r")
+aexp=int(f.read())
+print("aexp: ",aexp)
+
 A=G.point_multiplication(aexp)
-bexp=random.randint(2,q-1)
+f = open("bexp.txt", "r")
+bexp=int(f.read())
+print("bexp: ",bexp)
 B=G.point_multiplication(bexp)
 
 
@@ -430,18 +438,35 @@ def H5(ida, idb, ra, rb,k, n=76):
 
     return h_256.read(n)
 
+f = open("archivoprotegidocliente.txt", "r")
+BD=json.loads(f.read())
+BD=json.loads((BD.replace("'",'"')))
+
+def recuperarpi(id):
+    if id in BD.keys():
+       return int(BD[id].split("(")[1].split(",")[0])
+    else:
+       raise ValueError('Error con id')
+def recuperarU1(id):
+    if id in BD.keys():
+       return int(BD[id].replace("'","").replace("(","").replace(")","").split(",")[2])
+    else:
+       raise ValueError('Error con id')
 
 ID_p='Usuario1'
 
 password='mypassword'
-salt=get_random_bytes(16)
+f = open("salt.txt", "r")
+salt=bytes(f.read(), 'utf-8')
+print("salt: ",salt)
+
 ID_q='Usuario2'
 h= PBKDF2(password+ID_p+ID_q, salt,2*math.ceil(n/8) , count=100000, hmac_hash_module=SHA512)
 print(h)
 
 
 print(len(h))
-
+"""
 h1 = h[:32]
 h2= h[32:] 
 print(h1)
@@ -450,35 +475,232 @@ pi0=int.from_bytes(h1,'big')% q
 pi1=int.from_bytes(h2,'big')% q
 print("pi0: ",pi0)
 print("pi1: ",pi1)
-
-
-
+"""
+pi0=recuperarpi(ID_p)
+print("G: ",G)
+pi1=recuperarU1(ID_p)
 U1=G.point_multiplication(pi1) ##pi1⋅𝐺
 
-
-#Enviando U1, ID_p y pi0
-
-## recibiendo U , ID_p y pi0
-
-BD={ID_p:(pi0,U1)}
-print(type(BD))
-f =  open("archivoprotegidocliente.txt", "w")
-f.write('"%s"' % str(BD))
-f.close()
-
-f1=open("../archivosserver/archivoprotegidoserver.txt","w")
-f1.write('"%s"' % str(BD))
-f1.close()
+print("U1: ",U1)
 
 
 alpha=random.randint(2,q-1)
 U=A.point_multiplication(pi0)+G.point_multiplication(alpha)
 
-cliente = socket.socket()
-cliente.connect(('localhost',8000))
-print("U: ",U)
-cliente.send(b(ID_p))
+def rec_V_IDq():
+    server.bind(('localhost',8001))
+    server.listen(5)
+    
+    contV=False
+    contID=False
+    while (contV == False & contID == False):
+        try:
+            (client,addr)=server.accept()
+            res = client.recv(1024)       
+            print("res: ",res)    
+            if (res!=b'Usuario2'): 
+                print("diferente Usuario2")
+                Vx=res[0]
+                Vy=res[1]
+                print("VX",(Vx))
+                print("VY: ",(Vy))
+                v=ECPoint(Vx,Vy)
+                V=v.point_from_bytes(a,b,res)
+                print("V: ",V)
 
-res = cliente.recv(1024)
-print(res)
-cliente.close()
+                contV=True
+                client.close()
+            else:
+                print("Usuario2")
+                ID_q=res.decode('UTF-8')
+                contID=True
+        except:
+
+            print("Except")
+
+    return [V,ID_q]
+"""
+def sendCtoActualizationOfIP(ce):
+    contador=0
+    while (contador<5):
+        try:
+            contador+=1 
+            print("sending c to server for actualization of IP, please wait")
+            clienteCIP = socket.socket()       
+            print("connect")   
+            clienteCIP.connect(('localhost',9005))
+            print("post connect")
+            conter=0
+            
+            while(conter<20):
+                try:      
+                    print("Send pre")
+                    clienteCIP.send(ce)
+                    print("Send post")
+                    conter=conter+1
+                    clienteCIP.close()
+                    print("try padre")
+                except (EnvironmentError): 
+                    print("expect hijo")          
+                    conter=conter+1
+        except:
+            print("expect padre")
+            contador+=1 
+            continue
+"""
+def sendCtoserver(c):
+    con=0
+    while (con<5):
+        try:
+            con+=1 
+            print("sending c to server, please wait")
+            clienteC = socket.socket()          
+            clienteC.connect(('localhost',9001))
+            cont=0
+            
+            while (cont<5):
+                    try:      
+                        clienteC.send(c)
+                        cont=cont+1
+                        clienteC.close()
+                    except (EnvironmentError):           
+                       cont=cont+1
+        except:
+            con+=1 
+            continue
+def send_U_ID(U,ID_p):
+    cont=0
+    while (cont<2): 
+        try:
+            cont=cont+1
+            print("cont: ",cont)
+            clienteU = socket.socket()
+         
+            clienteIDP=socket.socket()
+          
+            clienteIDP.connect(('localhost',8000))
+         
+            clienteU.connect(('localhost',8000))
+         
+            envio=(ID_p,U.to_bytes,str(U))
+            
+            clienteU.send(U.to_bytes())
+            
+            clienteIDP.send(bytes(ID_p,'UTF-8'))
+         
+            #cliente.send(bytes(str(envio), 'utf-8'))
+            clienteU.close()
+          
+            clienteIDP.close()
+          
+            
+        except (EnvironmentError):
+            print(EnvironmentError)
+            cont=cont+1
+
+def recT2atoserver():
+    server1.bind(('localhost',9000))  
+    server1.listen(5)
+    
+    conT2a=False
+    while (conT2a == False ):
+        try:
+            (client,addr)=server1.accept()
+            res = client.recv(1024)       
+            print("res: ",res)    
+            t2a=res
+            conT2a=True
+            client.close()
+           
+        except:
+
+            print("Except")
+
+    return res
+       
+def recRtoserver():
+    server2.bind(('localhost',9002))  
+    server2.listen(5)
+    
+    conR=False
+    while (conR == False ):
+        try:
+            (clientR,add)=server2.accept()
+            res = clientR.recv(1024)    
+            r=res
+            conR=True
+            clientR.close()
+           
+        except:
+
+            print("Except")
+
+    return res
+       
+send_U_ID(U,ID_p)
+print("Apunto")
+r=rec_V_IDq()
+print("ya fue")
+V=r[0]
+ID_q=r[1]
+
+print("V:", V)
+print("ID_q:", ID_q)
+
+y_r= V.y**2
+mtres=FP(-3,p)
+x_r= V.x**3 + mtres*V.x + b
+#if V.is_identity() or !(y_r == x_r): abort
+
+Wc= (V-B.point_multiplication(pi0)).point_multiplication(alpha)
+dc= (V-B.point_multiplication(pi0)).point_multiplication(pi1)
+print("pi0:",pi0)
+print("U:", U)
+print("V: ",V)
+print("Wc: ",Wc)
+print("dc: ",dc)
+
+keycliente=H1(pi0, U, V, Wc,dc, 32)
+print(keycliente.hex())
+
+t2a=recT2atoserver()
+print("t2a: ",t2a)
+
+t1a=H2(keycliente)
+t1b=H3(keycliente)
+
+key=keycliente
+f=open('keycliente.txt','w')
+f.write('%s'%str(key))
+f.close()
+print("key: ",type(key))
+ñ=H4(key)
+sk=ñ[:32]
+N=ñ[32:]
+print("Ñ: ",ñ)
+print(len(ñ))
+print("SK: ",sk)
+print(len(sk))
+print("N: ",N)
+
+cipher = AES.new(sk, AES.MODE_GCM, nonce=N)
+data=b"Ipdeprueba"
+m= b"registrar:"+data
+c=cipher.encrypt(m)
+
+print("sendtoserver")
+
+sendCtoserver(c)
+print("c: ",c)
+r=recRtoserver()
+print("r: ",r)
+
+## Operacion actualizar IP d
+cipher = AES.new(sk, AES.MODE_GCM, nonce=N)
+data= b"NuevoIPdecliente"
+m= b"obtenerIP:"+data
+c=cipher.encrypt(m)
+
+#envio de c por parte de cliente al servidor
+#sendCtoActualizationOfIP(c)
+#print("CIP: ",c)

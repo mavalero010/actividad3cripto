@@ -527,8 +527,8 @@ keycliente=H1(pi0, U, V, Wc,dc, 32)
 
 keyservidor=H1(pi0, U, V, Ws,ds, 32)
 
-print(keyservidor.hex())
-print(keycliente.hex())
+print("keyservidor: ",keyservidor.hex())
+print("keycliente: ",keycliente.hex())
 
 t2a=H2(keyservidor)
 t2b=H3(keyservidor)
@@ -562,6 +562,7 @@ c=cipher.encrypt(m)
 print(c)
 
 #envio de c por parte de cliente al servidor
+
 cipher = AES.new(sk, AES.MODE_GCM, nonce=N)
 m=cipher.decrypt(c)
 print(m)
@@ -578,6 +579,7 @@ if (x[0]=='registrar'):
   cipher = AES.new(sk, AES.MODE_GCM, nonce=N)
   r=cipher.encrypt(k_enc+k_mac)
 
+
 #envio de r por parte de servidor a cliente
 cipher = AES.new(sk, AES.MODE_GCM, nonce=N)
 llave= cipher.decrypt(r)
@@ -585,6 +587,7 @@ k_enc= llave[:32]
 k_mac= llave[32:]
 print(k_enc)
 print(k_mac)
+
 #almacenar k_enc y k_mac
 
 ## Operacion obtener IP de b
@@ -608,10 +611,15 @@ if (x[0]=='obtenerIP'):
   cipher = AES.new(sk, AES.MODE_GCM, nonce=N)
   r=cipher.encrypt(IP_b)
 
+
+
 #envio de r por parte de servidor a cliente
 cipher = AES.new(sk, AES.MODE_GCM, nonce=N)
 respuesta= cipher.decrypt(r)
 print(respuesta)
+
+##Hasta aqui hecho
+
 
 ## Operacion actualizar IP d
 cipher = AES.new(sk, AES.MODE_GCM, nonce=N)
