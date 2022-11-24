@@ -1,0 +1,10 @@
+Correr el archivo preregistrocliente.py
+Luego correr el archivo server.py, posteriormente 
+una vez se lo indique en la terminal, abrir otra y 
+correr simultaneamente el archivo cliente.py 
+
+hasta allí genera y envía mediante sockets las diferentes llaves.
+
+Dado a que la implementación completa con sockets no está totalmente funcional
+también se puede ver la parte lógica de los diferentes protocolos de la actividad
+ejecutando el archivo main.py
